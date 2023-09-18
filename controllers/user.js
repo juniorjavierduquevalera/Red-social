@@ -2,6 +2,15 @@ const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("../services/jwt");
 
+//acciones de pruebas//
+const prueba = (req, res) => {
+  return res.status(200).send({
+    message: "Prueba exitosa",
+    usuario: req.user
+  });
+};
+
+
 // Acción de registro
 const register = async (req, res) => {
   try {
@@ -118,4 +127,5 @@ const login = async (req, res) => {
 module.exports = {
   register,
   login,
+  prueba
 };
