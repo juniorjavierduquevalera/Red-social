@@ -124,8 +124,44 @@ const login = async (req, res) => {
   }
 };
 
+const profile = async (req, res) => {
+  try {
+    // Recibir el parámetro del ID de usuario desde la URL
+    const id = req.params.id;
+
+    // Consulta para obtener los datos del usuario por su ID
+    const userProfile = await User.findOne({ _id: id })
+    .select({password: 0})
+    .exec();
+    
+    // Verificar si se encontró el usuario
+    if (!userProfile) {
+      return res.status(404).json({
+        status: "error",
+        message: "Usuario no encontrado",
+      });
+    }
+
+    // Si se encontró el usuario, enviar los datos en la respuesta
+    return res.status(200).json({
+      status: "success",
+      message: "Datos del usuario obtenidos correctamente",
+      user: userProfile,
+    });
+  } catch (error) {
+    // Manejar errores y enviar una respuesta de error
+    return res.status(500).json({
+      status: "error",
+      message: "Error al obtener los datos del usuario",
+      error: error.message,
+    });
+  }
+};
+
+
 module.exports = {
   register,
   login,
-  prueba
+  prueba,
+  profile
 };
