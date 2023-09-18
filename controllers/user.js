@@ -1,5 +1,6 @@
 const User = require("../models/user");
-const bcrypt = require("bcrypt")
+const bcrypt = require("bcrypt");
+const jwt = require("../services/jwt");
 
 // Acción de registro
 const register = async (req, res) => {
@@ -18,10 +19,7 @@ const register = async (req, res) => {
 
     // Control de usuarios duplicados
     const existingUser = await User.findOne({
-      $or: [
-        { email: params.email },
-        { nick: params.nick },
-      ],
+      $or: [{ email: params.email }, { nick: params.nick }],
     });
 
     if (existingUser) {
@@ -65,6 +63,59 @@ const register = async (req, res) => {
   }
 };
 
+const login = async (req, res) => {
+  try {
+    // Recoger los parámetros del cuerpo de la solicitud
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Faltan datos por enviar",
+      });
+    }
+
+    // Buscar el usuario por su dirección de correo electrónico (email) y excluir la contraseña
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return res.status(404).json({
+        status: "error",
+        message: "Usuario no encontrado",
+      });
+    }
+
+    // Comparar la contraseña proporcionada con la contraseña almacenada en la base de datos
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        status: "error",
+        message: "Contraseña incorrecta",
+      });    }
+
+    //generar un token 
+    const token = jwt.createToken(user);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Inicio de sesión exitoso",
+      user: {
+        id: user._id,
+        name: user.name,
+        nick: user.nick,
+      },
+      token
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Error al iniciar sesión",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
-  register
+  register,
+  login,
 };
