@@ -200,6 +200,7 @@ const list = async (req, res) => {
       users,
       page,
       itemsPerPage,
+      totalUsers,      
       totalPages,
     });
   } catch (error) {
@@ -210,8 +211,6 @@ const list = async (req, res) => {
     });
   }
 };
-
-
 
 module.exports = {
   register,
