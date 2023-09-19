@@ -1,15 +1,15 @@
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("../services/jwt");
+const mongoosepagination = require("mongoose-pagination");
 
 //acciones de pruebas//
 const prueba = (req, res) => {
   return res.status(200).send({
     message: "Prueba exitosa",
-    usuario: req.user
+    usuario: req.user,
   });
 };
-
 
 // Acción de registro
 const register = async (req, res) => {
@@ -100,9 +100,10 @@ const login = async (req, res) => {
       return res.status(401).json({
         status: "error",
         message: "Contraseña incorrecta",
-      });    }
+      });
+    }
 
-    //generar un token 
+    //generar un token
     const token = jwt.createToken(user);
 
     return res.status(200).json({
@@ -113,7 +114,7 @@ const login = async (req, res) => {
         name: user.name,
         nick: user.nick,
       },
-      token
+      token,
     });
   } catch (error) {
     return res.status(500).json({
@@ -131,9 +132,9 @@ const profile = async (req, res) => {
 
     // Consulta para obtener los datos del usuario por su ID
     const userProfile = await User.findOne({ _id: id })
-    .select({password: 0})
-    .exec();
-    
+      .select({ password: 0 })
+      .exec();
+
     // Verificar si se encontró el usuario
     if (!userProfile) {
       return res.status(404).json({
@@ -158,10 +159,64 @@ const profile = async (req, res) => {
   }
 };
 
+const list = async (req, res) => {
+  // Controlar en qué página estamos
+  let page = 1;
+
+  if (req.params.page) {
+    page = parseInt(req.params.page);
+  }
+
+  // Establecer el número de elementos por página
+  const itemsPerPage = 10;
+
+  try {
+    // Contar el total de documentos en la colección de usuarios
+    const totalUsers = await User.countDocuments();
+
+    // Calcular el total de páginas
+    const totalPages = Math.ceil(totalUsers / itemsPerPage);
+
+    // Realizar la consulta con Mongoose pagination
+    const users = await User.find()
+      .sort("_id")
+      .paginate(page, itemsPerPage)
+      .select({ password: 0 })
+      .exec();
+
+    if (users.length === 0 && page > 1) {
+      return res.status(404).json({
+        status: "error",
+        message: "No hay usuarios en esta página",
+        page,
+        itemsPerPage,
+        totalPages,
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Lista de usuarios",
+      users,
+      page,
+      itemsPerPage,
+      totalPages,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Error al obtener la lista de usuarios",
+      error: error.message,
+    });
+  }
+};
+
+
 
 module.exports = {
   register,
   login,
   prueba,
-  profile
+  profile,
+  list,
 };
