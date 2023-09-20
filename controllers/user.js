@@ -1,7 +1,7 @@
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("../services/jwt");
-const mongoosepagination = require("mongoose-pagination");
+const pagination = require("mongoose-pagination");
 
 //acciones de pruebas//
 const prueba = (req, res) => {
@@ -171,42 +171,94 @@ const list = async (req, res) => {
   const itemsPerPage = 10;
 
   try {
-    // Contar el total de documentos en la colección de usuarios
-    const totalUsers = await User.countDocuments();
-
-    // Calcular el total de páginas
-    const totalPages = Math.ceil(totalUsers / itemsPerPage);
-
     // Realizar la consulta con Mongoose pagination
-    const users = await User.find()
+    User.find()
       .sort("_id")
-      .paginate(page, itemsPerPage)
-      .select({ password: 0 })
-      .exec();
+      .paginate(page, itemsPerPage, (err, users, total) => {
+        if (err) {
+          return res.status(500).json({
+            status: "error",
+            message: "Error al obtener la lista de usuarios",
+            error: err.message,
+          });
+        }
 
-    if (users.length === 0 && page > 1) {
-      return res.status(404).json({
-        status: "error",
-        message: "No hay usuarios en esta página",
-        page,
-        itemsPerPage,
-        totalPages,
+        if (!users || users.length === 0) {
+          return res.status(404).json({
+            status: "error",
+            message: "No hay usuarios en esta página",
+            page,
+            itemsPerPage,
+            total,
+          });
+        }
+
+        const totalPages = Math.ceil(total / itemsPerPage);
+
+        return res.status(200).json({
+          status: "success",
+          message: "Lista de usuarios",
+          users,
+          page,
+          itemsPerPage,
+          total,
+          totalPages,
+        });
       });
-    }
-
-    return res.status(200).json({
-      status: "success",
-      message: "Lista de usuarios",
-      users,
-      page,
-      itemsPerPage,
-      totalUsers,      
-      totalPages,
-    });
   } catch (error) {
     return res.status(500).json({
       status: "error",
       message: "Error al obtener la lista de usuarios",
+      error: error.message,
+    });
+  }
+};
+
+const update = async (req, res) => {
+  try {
+    // Recoger información del usuario a actualizar
+    const userIdentity = req.user;
+    const userToUpdate = req.body;
+
+    // Eliminar campos sobrantes
+    delete userIdentity.iat;
+    delete userIdentity.exp;
+
+    // Verificar si el usuario existe por su ID
+    const user = await User.findById(userIdentity.id);
+
+    if (!user) {
+      return res.status(404).json({
+        status: "error",
+        message: "Usuario no encontrado",
+      });
+    }
+
+    // Actualizar los campos del usuario con los datos de userToUpdate
+    Object.assign(user, userToUpdate);
+
+    // Si se proporcionó una nueva contraseña, hashearla antes de guardarla
+    if (userToUpdate.password) {
+      const saltRounds = 10; // El número de rondas de sal (cifrado)
+      const hashedPassword = await bcrypt.hash(userToUpdate.password, saltRounds);
+      user.password = hashedPassword;
+    }
+
+    // Guardar los cambios en la base de datos
+    await user.save();
+
+    // Recuperar el usuario actualizado de la base de datos
+    const updatedUser = await User.findById(userIdentity.id).select("-password");
+
+    return res.status(200).json({
+      status: "success",
+      message: "Usuario actualizado con éxito",
+      user: updatedUser,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Error al actualizar el usuario",
       error: error.message,
     });
   }
@@ -218,4 +270,5 @@ module.exports = {
   prueba,
   profile,
   list,
+  update,
 };

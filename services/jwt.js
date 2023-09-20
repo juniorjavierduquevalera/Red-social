@@ -14,7 +14,7 @@ const createToken = (user) => {
     role: user.role,
     image: user.image,
     iat: moment().unix(),
-    exp: moment().add(7, "days").unix(),
+    exp: moment().add(14, "days").unix(),
   };
 
   // Devolver jwt token codificado

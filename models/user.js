@@ -18,11 +18,15 @@ const UserSchema = Schema({
     type: String,
     default: "role_user",
   },
+  bio: {
+    type: String,
+    required: false,
+  },
   image: {
     type: String,
-    default: "default.png", 
+    default: "default.png",
   },
-  password: { 
+  password: {
     type: String,
     required: true,
   },
@@ -35,4 +39,3 @@ const UserSchema = Schema({
 const User = model("User", UserSchema, "users");
 
 module.exports = User;
-
