@@ -2,6 +2,8 @@ const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("../services/jwt");
 const pagination = require("mongoose-pagination");
+const fs = require("fs");
+const path = require("path");
 
 //acciones de pruebas//
 const prueba = (req, res) => {
@@ -240,7 +242,10 @@ const update = async (req, res) => {
     // Si se proporcionó una nueva contraseña, hashearla antes de guardarla
     if (userToUpdate.password) {
       const saltRounds = 10; // El número de rondas de sal (cifrado)
-      const hashedPassword = await bcrypt.hash(userToUpdate.password, saltRounds);
+      const hashedPassword = await bcrypt.hash(
+        userToUpdate.password,
+        saltRounds
+      );
       user.password = hashedPassword;
     }
 
@@ -248,7 +253,9 @@ const update = async (req, res) => {
     await user.save();
 
     // Recuperar el usuario actualizado de la base de datos
-    const updatedUser = await User.findById(userIdentity.id).select("-password");
+    const updatedUser = await User.findById(userIdentity.id).select(
+      "-password"
+    );
 
     return res.status(200).json({
       status: "success",
@@ -264,6 +271,86 @@ const update = async (req, res) => {
   }
 };
 
+const upload = async (req, res) => {
+  // Verificar si se ha subido un archivo
+  if (!req.file) {
+    return res.status(400).json({
+      status: "error",
+      message: "No se ha seleccionado ningún archivo",
+    });
+  }
+
+  // Obtener el nombre original del archivo
+  const image = req.file.originalname;
+
+  // Obtener la extensión del archivo
+  const extension = path.extname(image).toLowerCase();
+
+  // Comprobar extensión
+  if (
+    extension !== ".png" &&
+    extension !== ".jpg" &&
+    extension !== ".jpeg" &&
+    extension !== ".gif"
+  ) {
+    // Eliminar el archivo
+    const filePath = req.file.path;
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error("Error al eliminar el archivo:", err);
+      }
+      return res.status(400).json({
+        status: "error",
+        message: "El archivo subido no tiene una extensión válida",
+      });
+    });
+  } else {
+    try {
+      // Obtener la imagen anterior del usuario
+      const user = await User.findById(req.user.id);
+      const previousImage = user.image;
+
+      // Si la extensión es válida, eliminar la imagen anterior si existe
+      if (previousImage) {
+        const previousImagePath = path.join("uploads/avatars", previousImage);
+        fs.unlink(previousImagePath, (err) => {
+          if (err) {
+            console.error("Error al eliminar la imagen anterior:", err);
+          }
+        });
+      }
+
+      // Actualizar la imagen del usuario en la base de datos
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: req.user.id },
+        { image: req.file.filename },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        return res.status(404).json({
+          status: "error",
+          message: "Usuario no encontrado",
+        });
+      }
+
+      return res.status(200).json({
+        status: "success",
+        message: "Archivo subido con éxito",
+        user: updatedUser,
+        avatar: req.file,
+      });
+    } catch (error) {
+      console.error("Error al actualizar el usuario:", error);
+      return res.status(500).json({
+        status: "error",
+        message: "Error al actualizar el usuario",
+        error: error.message,
+      });
+    }
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -271,4 +358,5 @@ module.exports = {
   profile,
   list,
   update,
+  upload,
 };
