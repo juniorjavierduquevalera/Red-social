@@ -5,13 +5,6 @@ const pagination = require("mongoose-pagination");
 const fs = require("fs");
 const path = require("path");
 
-//acciones de pruebas//
-const prueba = (req, res) => {
-  return res.status(200).send({
-    message: "Prueba exitosa",
-    usuario: req.user,
-  });
-};
 
 // Acción de registro
 const register = async (req, res) => {
@@ -351,12 +344,33 @@ const upload = async (req, res) => {
   }
 };
 
+const avatar = (req, res) => {
+  try {
+    // Sacar el parámetro de la URL
+    const file = req.params.file;
+
+    // Montar el path real de la imagen
+    const filePath = path.resolve("./uploads/avatars", file);
+
+    // Comprobar si el archivo existe
+    const stats = fs.statSync(filePath);
+
+    // Si el archivo existe, puedes servirlo aquí
+    res.sendFile(path.resolve(filePath));
+  } catch (err) {
+    // Si ocurre un error (por ejemplo, el archivo no existe), manejarlo aquí
+    const errorMessage = `Error: Avatar not found - ${err.message}`;
+    console.error(errorMessage); // Registrar el error en la consola para fines de depuración
+    res.status(404).send(errorMessage); // Enviar el mensaje de error en la respuesta
+  }
+};
+
 module.exports = {
   register,
   login,
-  prueba,
   profile,
   list,
   update,
   upload,
+  avatar
 };

@@ -22,12 +22,11 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Definir rutas
-router.get("/prueba", check.auth, userController.prueba);
 router.post("/register", userController.register);
 router.post("/login", userController.login);
 router.get("/profile/:id", check.auth, userController.profile);
 router.get("/list/:page?", check.auth, userController.list);
 router.put("/update", check.auth, userController.update);
 router.post("/upload", check.auth, upload.single("avatar"), userController.upload);
-
+router.get("/avatar/:file", check.auth, userController.avatar);
 module.exports = router;
