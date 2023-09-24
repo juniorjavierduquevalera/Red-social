@@ -2,6 +2,7 @@
 const follow = require("../models/follow");
 const user = require("../models/user");
 const mongoosePginate = "mongoose-pagination";
+const folloService = require("../services/followService");
 
 //acciones//
 const save = async (req, res) => {
@@ -82,14 +83,15 @@ const following = async (req, res) => {
     const itemsPerPage = 5;
 
     // Realizar la consulta para obtener los usuarios que sigue el usuario identificado
-    const follows = await follow.find({ user: userId })
+    const follows = await follow
+      .find({ user: userId })
       .populate({
         path: "user",
-        select: "-password -role -__v -created_at"
+        select: "-password -role -__v -created_at",
       })
       .populate({
         path: "followed",
-        select: "-password -role -__v -created_at"
+        select: "-password -role -__v -created_at",
       })
       .paginate(page, itemsPerPage)
       .exec();
@@ -100,6 +102,9 @@ const following = async (req, res) => {
     // Calcular el total de páginas
     const totalPages = Math.ceil(totalFollows / itemsPerPage);
 
+    //sacar un array de ids de los usuarios que me siguen y los que sigo//
+    let followUserIds = await folloService.followUserIds(req.user.id);
+
     // Listado de usuarios que siguen a otros y me siguen a mí
     return res.status(200).send({
       status: "Success",
@@ -108,10 +113,17 @@ const following = async (req, res) => {
       currentPage: page,
       totalPages,
       totalFollows,
+      user_following: followUserIds.following,
+      user_follow_me: followUserIds.followers,
     });
   } catch (error) {
-    console.error("Error al obtener la lista de usuarios que estoy siguiendo:", error);
-    return res.status(500).send({ status: "Error", message: "Error interno del servidor" });
+    console.error(
+      "Error al obtener la lista de usuarios que estoy siguiendo:",
+      error
+    );
+    return res
+      .status(500)
+      .send({ status: "Error", message: "Error interno del servidor" });
   }
 };
 
