@@ -128,13 +128,66 @@ const following = async (req, res) => {
 };
 
 //listado de usuarios que siguen a cualquier usuario (soy seguido)//
-const followers = (req, res) => {
-  return res.status(200).send({
-    status: "Success",
-    message: "listadod de usuarios que me siguen",
-  });
-};
+const followers = async (req, res) => {
+  try {
+    // Sacar el id del usuario identificado
+    let userId = req.user.id;
 
+    // Comprobar si me llega el id por parámetro en la URL
+    if (req.params.id) userId = req.params.id;
+
+    // Comprobar si me llega la página, sino la página 1
+    let page = 1;
+
+    if (req.params.page) page = req.params.page;
+
+    // Usuario de página que quiero mostrar
+    const itemsPerPage = 5;
+
+    // Realizar la consulta para obtener los usuarios que sigue el usuario identificado
+    const follows = await follow
+      .find({ followed: userId })
+      .populate({
+        path: "user",
+        select: "-password -role -__v -created_at",
+      })
+      .populate({
+        path: "followed",
+        select: "-password -role -__v -created_at",
+      })
+      .paginate(page, itemsPerPage)
+      .exec();
+
+    // Obtener el total de páginas
+    const totalFollows = await follow.countDocuments({ user: userId });
+
+    // Calcular el total de páginas
+    const totalPages = Math.ceil(totalFollows / itemsPerPage);
+
+    //sacar un array de ids de los usuarios que me siguen y los que sigo//
+    let followUserIds = await folloService.followUserIds(req.user.id);
+
+    // Listado de usuarios que siguen a otros y me siguen a mí
+    return res.status(200).send({
+      status: "Success",
+      message: "Listado de usuarios que me siguen",
+      follows,
+      currentPage: page,
+      totalPages,
+      totalFollows,
+      user_following: followUserIds.following,
+      user_follow_me: followUserIds.followers,
+    });
+  } catch (error) {
+    console.error(
+      "Error al obtener la lista de usuarios que estoy siguiendo:",
+      error
+    );
+    return res
+      .status(500)
+      .send({ status: "Error", message: "Error interno del servidor" });
+  }
+};
 module.exports = {
   save,
   unfollow,

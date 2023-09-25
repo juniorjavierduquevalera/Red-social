@@ -167,7 +167,7 @@ const list = async (req, res) => {
   }
 
   // Establecer el número de elementos por página
-  const itemsPerPage = 2;
+  const itemsPerPage = 5;
 
   //info de seguimiento//
   const followUserIds = await followService.followUserIds(req.user.id);
