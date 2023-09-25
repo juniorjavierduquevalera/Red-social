@@ -1,4 +1,6 @@
 const Publication = require("../models/publication");
+const path = require("path");
+const fs = require("fs");
 
 //Guardar una publicacion//
 
@@ -90,7 +92,8 @@ const deletePost = async (req, res) => {
     if (!publication) {
       return res.status(404).json({
         status: "error",
-        message: "Publicación no encontrada o no tienes permiso para eliminarla",
+        message:
+          "Publicación no encontrada o no tienes permiso para eliminarla",
       });
     }
 
@@ -106,7 +109,6 @@ const deletePost = async (req, res) => {
       status: "success",
       message: "Publicación eliminada correctamente",
       deletedPublication,
-      
     });
   } catch (error) {
     // Manejar errores y enviar una respuesta de error
@@ -137,8 +139,8 @@ const listPost = async (req, res) => {
       .sort({ created_at: -1 }) // Ordenar por fecha de creación descendente
       .skip((page - 1) * itemsPerPage)
       .limit(itemsPerPage)
-      .populate('user', 'name username') // Excluir el campo '__v' omitiéndolo
-      .select('-__v')
+      .populate("user", "name username") // Excluir el campo '__v' omitiéndolo
+      .select("-__v")
       .exec();
 
     // Si no hay publicaciones, enviar un mensaje adecuado
@@ -169,7 +171,7 @@ const listPost = async (req, res) => {
   }
 };
 
-
+//subir ficheros//
 
 module.exports = {
   save,
