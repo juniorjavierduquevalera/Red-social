@@ -15,16 +15,15 @@ const followUserIds = async (identityUserId) => {
     // Procesar array de identificadores
     let followingClean = [];
 
-    following.forEach(element => {
-      followingClean.push(element.followed); 
+    following.forEach((element) => {
+      followingClean.push(element.followed);
     });
 
     let followersClean = [];
 
-    followers.forEach(element => {
-      followersClean.push(element.user); 
+    followers.forEach((element) => {
+      followersClean.push(element.user);
     });
-
 
     return { following: followingClean, followers: followersClean };
   } catch (error) {
@@ -34,7 +33,39 @@ const followUserIds = async (identityUserId) => {
   }
 };
 
-const followThisUser = async (identityUserId, profileUserId) => {};
+const followThisUser = async (identityUserId, profileUserId) => {
+  try {
+    // Verificar si el usuario está siguiendo al perfil
+    const following = await follow.findOne({
+      user: identityUserId,
+      followed: profileUserId,
+    });
+
+    // Verificar si el perfil está siguiendo al usuario
+    const follower = await follow.findOne({
+      user: profileUserId,
+      followed: identityUserId,
+    });
+
+    // Si ambos son nulos, significa que no hay seguimiento mutuo
+    if (!following && !follower) {
+      return {
+        following: false,
+        follower: false,
+      };
+    }
+
+    return {
+      following,
+      follower,
+    };
+  } catch (error) {
+    // Manejar errores y enviar una respuesta de error
+    console.error("Error en la función followThisUser:", error);
+    throw new Error("Error al obtener información de seguimiento.");
+  }
+};
+
 
 module.exports = {
   followUserIds,

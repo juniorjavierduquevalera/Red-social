@@ -1,10 +1,10 @@
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("../services/jwt");
+const followService = require("../services/followService");
 const pagination = require("mongoose-pagination");
 const fs = require("fs");
 const path = require("path");
-
 
 // Acción de registro
 const register = async (req, res) => {
@@ -138,11 +138,15 @@ const profile = async (req, res) => {
       });
     }
 
+    //info de seguimiento//
+    const followInfo = await followService.followThisUser(req.user.id, id);
+
     // Si se encontró el usuario, enviar los datos en la respuesta
     return res.status(200).json({
       status: "success",
       message: "Datos del usuario obtenidos correctamente",
       user: userProfile,
+      followInfo,
     });
   } catch (error) {
     // Manejar errores y enviar una respuesta de error
@@ -163,43 +167,36 @@ const list = async (req, res) => {
   }
 
   // Establecer el número de elementos por página
-  const itemsPerPage = 10;
+  const itemsPerPage = 2;
+
+  //info de seguimiento//
+  const followUserIds = await followService.followUserIds(req.user.id);
 
   try {
-    // Realizar la consulta con Mongoose pagination
-    User.find()
+    // Realizar la consulta con Mongoose pagination utilizando promesas
+    const result = await User.find()
       .sort("_id")
-      .paginate(page, itemsPerPage, (err, users, total) => {
-        if (err) {
-          return res.status(500).json({
-            status: "error",
-            message: "Error al obtener la lista de usuarios",
-            error: err.message,
-          });
-        }
+      .skip((page - 1) * itemsPerPage)
+      .select({ password: 0 }) // Excluir el campo 'password'
+      .limit(itemsPerPage)
+      .exec();
 
-        if (!users || users.length === 0) {
-          return res.status(404).json({
-            status: "error",
-            message: "No hay usuarios en esta página",
-            page,
-            itemsPerPage,
-            total,
-          });
-        }
+    // Contar el total de documentos para calcular totalPages
+    const total = await User.countDocuments();
 
-        const totalPages = Math.ceil(total / itemsPerPage);
+    const totalPages = Math.ceil(total / itemsPerPage);
 
-        return res.status(200).json({
-          status: "success",
-          message: "Lista de usuarios",
-          users,
-          page,
-          itemsPerPage,
-          total,
-          totalPages,
-        });
-      });
+    return res.status(200).json({
+      status: "success",
+      message: "Lista de usuarios",
+      users: result,
+      page,
+      itemsPerPage,
+      total,
+      totalPages,
+      following: followUserIds.following,
+      followers: followUserIds.followers,
+    });
   } catch (error) {
     return res.status(500).json({
       status: "error",
@@ -208,6 +205,7 @@ const list = async (req, res) => {
     });
   }
 };
+
 
 const update = async (req, res) => {
   try {
@@ -372,5 +370,5 @@ module.exports = {
   list,
   update,
   upload,
-  avatar
+  avatar,
 };
