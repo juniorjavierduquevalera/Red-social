@@ -118,8 +118,62 @@ const deletePost = async (req, res) => {
   }
 };
 
+const listPost = async (req, res) => {
+  try {
+    // Sacar el identificador del usuario desde la URL
+    const userId = req.params.id;
+
+    // Controlar la página
+    let page = 1;
+
+    if (req.params.page) {
+      page = parseInt(req.params.page);
+    }
+
+    const itemsPerPage = 2;
+
+    // Realizar la consulta para obtener las publicaciones del usuario
+    const publications = await Publication.find({ user: userId })
+      .sort({ created_at: -1 }) // Ordenar por fecha de creación descendente
+      .skip((page - 1) * itemsPerPage)
+      .limit(itemsPerPage)
+      .populate('user', 'name username') // Excluir el campo '__v' omitiéndolo
+      .select('-__v')
+      .exec();
+
+    // Si no hay publicaciones, enviar un mensaje adecuado
+    if (publications.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No hay publicaciones en el perfil de este usuario",
+        page,
+        totalPages: 0,
+      });
+    }
+
+    // Devolver la respuesta con las publicaciones encontradas, la página actual y el total de páginas
+    return res.status(200).json({
+      status: "success",
+      message: "Lista de publicaciones del perfil de un usuario",
+      publications,
+      page,
+      totalPages: Math.ceil(publications.length / itemsPerPage),
+    });
+  } catch (error) {
+    // Manejar errores y enviar una respuesta de error
+    return res.status(500).json({
+      status: "error",
+      message: "Error al obtener la lista de publicaciones del usuario",
+      error: error.message,
+    });
+  }
+};
+
+
+
 module.exports = {
   save,
   detail,
   deletePost,
+  listPost,
 };

@@ -7,6 +7,6 @@ const check = require("../middlewares/auth");
 router.post("/save", check.auth, publicationController.save);
 router.get("/detail/:id", check.auth, publicationController.detail);
 router.delete("/deletepost/:id", check.auth, publicationController.deletePost);
-
+router.get("/listpost/:id/:page?", check.auth, publicationController.listPost);
 
 module.exports = router;
