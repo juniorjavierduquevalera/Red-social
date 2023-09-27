@@ -1,6 +1,8 @@
 const Publication = require("../models/publication");
 const path = require("path");
 const fs = require("fs");
+const followService = require("../services/followService");
+const publication = require("../models/publication");
 
 //Guardar una publicacion//
 
@@ -174,7 +176,6 @@ const listPost = async (req, res) => {
 //subir ficheros//
 
 const upload = async (req, res) => {
-
   // Verificar si se ha subido un archivo
   if (!req.file) {
     return res.status(400).json({
@@ -182,7 +183,7 @@ const upload = async (req, res) => {
       message: "No se ha seleccionado ningún archivo para subir",
     });
   }
-  
+
   // Obtener el ID de la publicación desde los parámetros de la URL
   const publicationId = req.params.id;
 
@@ -191,18 +192,25 @@ const upload = async (req, res) => {
 
   try {
     // Verificar si la publicación ya tiene un archivo adjunto
-    const publication = await Publication.findOne({ _id: publicationId, user: userId });
+    const publication = await Publication.findOne({
+      _id: publicationId,
+      user: userId,
+    });
 
     if (!publication) {
       return res.status(404).json({
         status: "error",
-        message: "Publicación no encontrada o no tienes permiso para actualizarla",
+        message:
+          "Publicación no encontrada o no tienes permiso para actualizarla",
       });
     }
 
     // Si existe un archivo anterior, eliminarlo
     if (publication.file) {
-      const previousImagePath = path.join("uploads/publications", publication.file);
+      const previousImagePath = path.join(
+        "uploads/publications",
+        publication.file
+      );
       fs.unlink(previousImagePath, (err) => {
         if (err) {
           console.error("Error al eliminar el archivo anterior:", err);
@@ -259,6 +267,56 @@ const media = (req, res) => {
     }); // Enviar un mensaje de error 400 en la respuesta
   }
 };
+//listado de publicaciones//
+const feed = async (req, res) => {
+  // Sacar la página actual
+  let page = 1;
+
+  if (req.params.page) {
+    page = parseInt(req.params.page); // Asegurarse de que la página sea un número entero
+  }
+
+  // Establecer el número de elementos por página
+  const itemsPerPage = 5;
+
+  // Sacar un array de identificadores de usuarios a los que sigo como usuario logeado
+  try {
+    const myFollows = await followService.followUserIds(req.user.id);
+
+    // Find: buscar publicaciones, ordenarlas, popularlas y paginarlas
+    const totalPublications = await Publication.countDocuments({
+      user: myFollows.following
+    });
+
+    const totalPages = Math.ceil(totalPublications / itemsPerPage);
+
+    const publications = await Publication.find({
+      user: myFollows.following
+    })
+    .populate("user", "-role -password -__v -email")
+    .sort("-created_at")
+    .skip((page - 1) * itemsPerPage)
+    .limit(itemsPerPage);
+
+    return res.status(200).json({
+      status: "success",
+      message: "feed de publicaciones",
+      page: page,
+      totalPages: totalPages,
+      itemsPerPage: itemsPerPage,
+      myFollows: myFollows.following,
+      publications,
+    });
+  } catch (error) {
+    console.error("Error en la obtención del feed de publicaciones:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Error al obtener el feed de publicaciones",
+      error: error.message,
+    });
+  }
+};
+
 
 module.exports = {
   save,
@@ -266,5 +324,6 @@ module.exports = {
   deletePost,
   listPost,
   upload,
-  media
+  media,
+  feed,
 };
