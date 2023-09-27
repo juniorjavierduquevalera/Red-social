@@ -351,17 +351,27 @@ const avatar = (req, res) => {
     const filePath = path.resolve("./uploads/avatars", file);
 
     // Comprobar si el archivo existe
-    const stats = fs.statSync(filePath);
-
-    // Si el archivo existe, puedes servirlo aquí
-    res.sendFile(path.resolve(filePath));
+    if (fs.existsSync(filePath)) {
+      // Si el archivo existe, puedes servirlo aquí
+      res.sendFile(filePath);
+    } else {
+      // Si el archivo no existe, devolver una respuesta de error 404
+      res.status(404).json({
+        status: "error",
+        message: "Avatar no encontrado",
+      });
+    }
   } catch (err) {
     // Si ocurre un error (por ejemplo, el archivo no existe), manejarlo aquí
     const errorMessage = `Error: Avatar not found - ${err.message}`;
     console.error(errorMessage); // Registrar el error en la consola para fines de depuración
-    res.status(404).send(errorMessage); // Enviar el mensaje de error en la respuesta
+    res.status(404).json({
+      status: "error",
+      message: "Avatar no encontrado",
+    }); // Enviar un mensaje de error 404 en la respuesta
   }
 };
+
 
 module.exports = {
   register,

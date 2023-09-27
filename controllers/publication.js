@@ -230,6 +230,35 @@ const upload = async (req, res) => {
   }
 };
 
+const media = (req, res) => {
+  try {
+    // Sacar el parámetro de la URL
+    const file = req.params.file;
+
+    // Montar el path real de la imagen
+    const filePath = path.resolve("./uploads/publications", file);
+
+    // Comprobar si el archivo existe
+    if (fs.existsSync(filePath)) {
+      // Si el archivo existe, puedes servirlo aquí
+      res.sendFile(filePath);
+    } else {
+      // Si el archivo no existe, devolver una respuesta de error 404
+      res.status(404).json({
+        status: "error",
+        message: "Archivo no encontrado",
+      });
+    }
+  } catch (err) {
+    // Si ocurre un error (por ejemplo, el parámetro no es válido), manejarlo aquí
+    const errorMessage = `Error: ${err.message}`;
+    console.error(errorMessage); // Registrar el error en la consola para fines de depuración
+    res.status(400).json({
+      status: "error",
+      message: "Parámetro de URL no válido",
+    }); // Enviar un mensaje de error 400 en la respuesta
+  }
+};
 
 module.exports = {
   save,
@@ -237,4 +266,5 @@ module.exports = {
   deletePost,
   listPost,
   upload,
+  media
 };

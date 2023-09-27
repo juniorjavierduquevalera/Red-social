@@ -27,4 +27,5 @@ router.get("/detail/:id", check.auth, publicationController.detail);
 router.delete("/deletepost/:id", check.auth, publicationController.deletePost);
 router.get("/listpost/:id/:page?", check.auth, publicationController.listPost);
 router.post("/upload/:id", check.auth, upload.single("file"), publicationController.upload);
+router.get("/media/:file", check.auth, publicationController.media);
 module.exports = router;
