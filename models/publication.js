@@ -12,7 +12,6 @@ const publicationSchema = Schema({
   },
   file: {
     type: String,
-    default: "default.png",
   },
   created_at: {
     type: Date,

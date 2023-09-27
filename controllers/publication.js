@@ -173,9 +173,68 @@ const listPost = async (req, res) => {
 
 //subir ficheros//
 
+const upload = async (req, res) => {
+
+  // Verificar si se ha subido un archivo
+  if (!req.file) {
+    return res.status(400).json({
+      status: "error",
+      message: "No se ha seleccionado ningún archivo para subir",
+    });
+  }
+  
+  // Obtener el ID de la publicación desde los parámetros de la URL
+  const publicationId = req.params.id;
+
+  // Obtener el ID del usuario autenticado
+  const userId = req.user.id;
+
+  try {
+    // Verificar si la publicación ya tiene un archivo adjunto
+    const publication = await Publication.findOne({ _id: publicationId, user: userId });
+
+    if (!publication) {
+      return res.status(404).json({
+        status: "error",
+        message: "Publicación no encontrada o no tienes permiso para actualizarla",
+      });
+    }
+
+    // Si existe un archivo anterior, eliminarlo
+    if (publication.file) {
+      const previousImagePath = path.join("uploads/publications", publication.file);
+      fs.unlink(previousImagePath, (err) => {
+        if (err) {
+          console.error("Error al eliminar el archivo anterior:", err);
+        }
+      });
+    }
+
+    // Actualizar la imagen de la publicación en la base de datos
+    publication.file = req.file.filename;
+    const updatedPublication = await publication.save();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Archivo subido con éxito",
+      publication: updatedPublication,
+      userId,
+    });
+  } catch (error) {
+    console.error("Error al actualizar la publicación:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Error al actualizar la publicación",
+      error: error.message,
+    });
+  }
+};
+
+
 module.exports = {
   save,
   detail,
   deletePost,
   listPost,
+  upload,
 };
