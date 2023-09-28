@@ -7,6 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const follow = require("../models/follow");
 const publication = require("../models/publication");
+const validate = require("../helpers/validate");
 
 // Acción de registro
 const register = async (req, res) => {
@@ -16,6 +17,16 @@ const register = async (req, res) => {
       return res.status(400).json({
         message: "Faltan datos",
         params,
+      });
+    }
+
+    const validationResult = validate.validateRegister(params);
+
+    if (!validationResult.isValid) {
+      return res.status(400).json({
+        status: "error",
+        message: "Error de validación",
+        errors: validationResult.errors,
       });
     }
 
