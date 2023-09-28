@@ -141,7 +141,7 @@ const listPost = async (req, res) => {
       .sort({ created_at: -1 }) // Ordenar por fecha de creación descendente
       .skip((page - 1) * itemsPerPage)
       .limit(itemsPerPage)
-      .populate("user", "name username") // Excluir el campo '__v' omitiéndolo
+      .populate("user", "name username -email") // Excluir el campo '__v' omitiéndolo
       .select("-__v")
       .exec();
 
@@ -288,6 +288,13 @@ const feed = async (req, res) => {
       user: myFollows.following
     });
 
+    if (totalPublications === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No hay publicaciones disponibles para mostrar",
+      });
+    }
+
     const totalPages = Math.ceil(totalPublications / itemsPerPage);
 
     const publications = await Publication.find({
@@ -316,7 +323,6 @@ const feed = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   save,

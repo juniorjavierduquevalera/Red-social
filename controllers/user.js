@@ -5,6 +5,8 @@ const followService = require("../services/followService");
 const pagination = require("mongoose-pagination");
 const fs = require("fs");
 const path = require("path");
+const follow = require("../models/follow");
+const publication = require("../models/publication");
 
 // Acción de registro
 const register = async (req, res) => {
@@ -177,7 +179,7 @@ const list = async (req, res) => {
     const result = await User.find()
       .sort("_id")
       .skip((page - 1) * itemsPerPage)
-      .select({ password: 0 }) // Excluir el campo 'password'
+      .select({ password: 0, email: 0, role: 0, __v: 0 }) // Excluir el campos
       .limit(itemsPerPage)
       .exec();
 
@@ -205,7 +207,6 @@ const list = async (req, res) => {
     });
   }
 };
-
 
 const update = async (req, res) => {
   try {
@@ -372,6 +373,28 @@ const avatar = (req, res) => {
   }
 };
 
+const counters = async (req, res) => {
+  let userId = req.user.id;
+
+  if (req.params.id) {
+    userId = req.params.id;
+  }
+
+  try {
+    const following = await follow.countDocuments({ user: userId });
+    const followed = await follow.countDocuments({ followed: userId });
+    const publications = await publication.countDocuments({ user: userId });
+
+    return res.status(200).send({
+      userId,
+      following,
+      followed,
+      publications,
+    });
+  } catch (error) {
+    return res.status(500).send({ message: "Error en el servidor" });
+  }
+};
 
 module.exports = {
   register,
@@ -381,4 +404,5 @@ module.exports = {
   update,
   upload,
   avatar,
+  counters,
 };

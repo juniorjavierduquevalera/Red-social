@@ -87,11 +87,11 @@ const following = async (req, res) => {
       .find({ user: userId })
       .populate({
         path: "user",
-        select: "-password -role -__v -created_at",
+        select: "-password -role -__v -created_at -email",
       })
       .populate({
         path: "followed",
-        select: "-password -role -__v -created_at",
+        select: "-password -role -__v -created_at -email",
       })
       .paginate(page, itemsPerPage)
       .exec();
@@ -149,11 +149,11 @@ const followers = async (req, res) => {
       .find({ followed: userId })
       .populate({
         path: "user",
-        select: "-password -role -__v -created_at",
+        select: "-password -role -__v -created_at -email",
       })
       .populate({
         path: "followed",
-        select: "-password -role -__v -created_at",
+        select: "-password -role -__v -created_at -email",
       })
       .paginate(page, itemsPerPage)
       .exec();
